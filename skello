@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+usage() {
+cat << 'EOF'
+    Skello creates a skeleton copy of a directory that can then be re-used when required
+
+    Usage: skello [COMMAND] [OPTIONS]
+
+    Available commands:
+
+    make
+        Usage: skello make
+        For more details on make run: skello make --help
+    drop
+        Usage: skello drop
+        For more details on drop run: skello drop --help
+    list
+        Usage: skello list
+        For more details on drop run: skello list --help
+    clone
+        Usage: skello clone project-name
+        For more details on clone run: skello clone --help
+    update:
+        Usage: skello update
+        For more details on clone run: skello update --help
+
+    Project settings: ~/.skello-cfg.json
+        repo: a git repo to save and pull skello projects from
+
+EOF
+}
+
+# Find absolute path to app
+abspath() {
+    # Find where we are installed through possible system links
+    local SOURCE="${BASH_SOURCE[0]}"
+    # resolve $SOURCE until the file is no longer a symlink
+    while [ -h "${SOURCE}" ]; do
+        WORKINGDIR="$(cd -P "$(dirname "${SOURCE}")" && pwd)"
+        SOURCE="$(readlink "${SOURCE}")"
+        # if SOURCE was a relative symlink, we need to resolve it
+        # relative to the path where the symlink file was located
+        [[ ${SOURCE} != /* ]] && SOURCE="${WORKINGDIR}/${SOURCE}"
+    done
+    WORKINGDIR="$(cd -P "$(dirname "${SOURCE}")" && pwd)"
+}
+abspath;
+
+
+main() {
+    if [ "$#" -lt 1 ]; then
+        usage; exit 1
+    fi
+
+    local subcommand="$1"; shift
+
+    case $subcommand in
+        "-h"|"--help")
+            usage; exit 0
+            ;;
+        "-v"|"--version")
+            version; exit 0
+            ;;
+    esac
+
+    source "$WORKINGDIR/cmds/$subcommand.sh"
+
+    local cmdtype=`type -t "run_$subcommand"`
+    if [ "$cmdtype" != "function" ]; then
+        usage; exit 1
+    fi
+
+    run_$subcommand "$@"
+}
+
+main "$@"
